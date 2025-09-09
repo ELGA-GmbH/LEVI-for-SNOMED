@@ -11,8 +11,11 @@ public class Conf {
 	}
 	
 	// Paths to the files and directories
-        // TODO: adapt
+	// TODO: adapt - for Additions file has to end with Additions.tsv
 	private static String filePathCurrent = "C:\\\\Users\\\\someuser\\\\Downloads\\\\Austrian_terms_20250728112105950_Original_Additions.tsv"; // Path to the CSV/Excel file with the terms to be compared
+        // TODO: adapt - for Inactivations file has to end with Inactivations.tsv
+	// private static String filePathCurrent = "C:\\\\Users\\\\someuser\\\\Downloads\\\\Austrian_terms_20250728112105950_Original_Inactivations.tsv"; // Path to the CSV/Excel file with the terms to be compared
+
 	private static String filePathPrevious = "PATH_TO_FILE"; // Path to the previous CSV/Excel file with the terms to be compared
         // TODO: adapt
 	private static String destination = "C:\\\\Users\\\\someuser\\\\Downloads\\\\results"; // Path where to create the three files
