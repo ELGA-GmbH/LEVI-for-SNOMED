@@ -3,6 +3,7 @@ package translation.check;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -77,7 +78,7 @@ public class FileReaderUtil {
 			CSVParser parser = new CSVParserBuilder().withSeparator(fileseparator).withQuoteChar('"').withEscapeChar('\\')
 					.withStrictQuotes(false).build();
 
-			try (CSVReader csvReader = new CSVReaderBuilder(new FileReader(filePath)).withCSVParser(parser).build()) {
+			try (CSVReader csvReader = new CSVReaderBuilder(new FileReader(filePath, Charset.forName("Cp1252"))).withCSVParser(parser).build()) {
 
 				switch (fileType) {
 				case ".propcsv.csv":

@@ -11,27 +11,29 @@ public class Conf {
 	}
 	
 	// Paths to the files and directories
-	private static String filePathCurrent = "PATH_TO_FILE"; // Path to the CSV/Excel file with the terms to be compared
+        // TODO: adapt
+	private static String filePathCurrent = "C:\\\\Users\\\\someuser\\\\Downloads\\\\Austrian_terms_20250728112105950_Original_Additions.tsv"; // Path to the CSV/Excel file with the terms to be compared
 	private static String filePathPrevious = "PATH_TO_FILE"; // Path to the previous CSV/Excel file with the terms to be compared
-	private static String destination = "PATH_TO_OUTPUT_FOLDER"; // Path where to create the three files	
+        // TODO: adapt
+	private static String destination = "C:\\\\Users\\\\someuser\\\\Downloads\\\\results"; // Path where to create the three files
 
 	// Database connection variables
-	private static String SERVER_URL = "jdbc:mysql://localhost/**DB_NAME**?useUnicode=true&characterEncoding=UTF-8";
+	private static String SERVER_URL = "jdbc:mariadb://localhost:3306/SCT?useUnicode=true&characterEncoding=UTF-8";
 	private static String USERNAME = "root";
-	private static String PASSWORD = "";
-	
-	private static String countryCode = "CH";
-	private static boolean transformEszett = true; // ture = Eszeet should be changed to "ss" in the translations
-		
-	
-	
-	
-	
-	
-	
-	
-	
-	
+	private static String PASSWORD = "root";
+
+	private static String countryCode = "AT";
+	private static boolean transformEszett = false; // ture = Eszeet should be changed to "ss" in the translations
+
+
+
+
+
+
+
+
+
+
 	//// Language reference sets for different countries
     private static final Map<String, Map<String, String>> countryToLanguageRefSets = new HashMap<>();
 
