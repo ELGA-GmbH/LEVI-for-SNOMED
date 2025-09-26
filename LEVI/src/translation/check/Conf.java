@@ -5,11 +5,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Conf {
-	
+
 	public Conf() {
 		// Default constructor
 	}
-	
+
 	// Paths to the files and directories
 	// TODO: adapt - for Additions file has to end with Additions.tsv
 	private static String filePathCurrent = "C:\\\\Users\\\\someuser\\\\Downloads\\\\Austrian_terms_20250728112105950_Original_Additions.tsv"; // Path to the CSV/Excel file with the terms to be compared
@@ -27,12 +27,7 @@ public class Conf {
 
 	private static String countryCode = "AT";
 	private static boolean transformEszett = false; // ture = Eszeet should be changed to "ss" in the translations
-
-
-
-
-
-
+        private static boolean regexCheck = false; // true = regex check is performed on the terms in the current file
 
 
 
@@ -98,37 +93,41 @@ public class Conf {
     public String getLanguageRefSetId(String languageCode) {
         return getLanguageRefSets(countryCode).get(languageCode.toLowerCase());
     }
-    
+
     public static String getSERVER_URL() {
     	return SERVER_URL;
     }
-    
+
     public static String getUSERNAME() {
     	return USERNAME;
     }
-    
+
     public static String getPASSWORD() {
 		return PASSWORD;
 	}
-    
+
     public String getFilePathCurrent() {
 		return filePathCurrent;
 	}
-    
+
     public String getFilePathPrevious() {
 		return filePathPrevious;
 	}
-	
+
 	public String getDestination() {
 		return destination;
 	}
-	
+
 	public boolean isTransformEszett() {
 		return transformEszett;
 	}
-	
+
 	public static String getCountryCode() {
 		return countryCode;
+	}
+
+	public boolean checkRegex() {
+		return regexCheck;
 	}
 
 }
