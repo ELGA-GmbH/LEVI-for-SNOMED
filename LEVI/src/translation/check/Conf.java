@@ -11,14 +11,13 @@ public class Conf {
 	}
 
 	// Paths to the files and directories
-	// TODO: adapt - for Additions file has to end with Additions.tsv
-	private static String filePathCurrent = "C:\\\\Users\\\\someuser\\\\Downloads\\\\Austrian_terms_20250728112105950_Original_Additions.tsv"; // Path to the CSV/Excel file with the terms to be compared
-        // TODO: adapt - for Inactivations file has to end with Inactivations.tsv
-	// private static String filePathCurrent = "C:\\\\Users\\\\someuser\\\\Downloads\\\\Austrian_terms_20250728112105950_Original_Inactivations.tsv"; // Path to the CSV/Excel file with the terms to be compared
+	// TODO: adapt
+        private static String filePathCurrent = "C:\\\\Users\\\\someuser\\\\Downloads\\\\11_2025\\\\current\\\\Austrian_terms_20251103162638691-NovemberRelease.xlsx"; // Path to the CSV/Excel file with the terms to be compared
 
-	private static String filePathPrevious = "PATH_TO_FILE"; // Path to the previous CSV/Excel file with the terms to be compared
         // TODO: adapt
-	private static String destination = "C:\\\\Users\\\\someuser\\\\Downloads\\\\results"; // Path where to create the three files
+	private static String filePathPrevious = "C:\\\\Users\\\\someuser\\\\Downloads\\\\11_2025\\\\previous\\\\termSpace-Export-OktoberRelease.xlsx"; // Path to the previous CSV/Excel file with the terms to be compared
+        // TODO: adapt
+	private static String destination = "C:\\\\Users\\\\someuser\\\\Downloads\\\\11_2025\\\\results"; // Path where to create the three files
 
 	// Database connection variables
 	private static String SERVER_URL = "jdbc:mariadb://localhost:3306/SCT?useUnicode=true&characterEncoding=UTF-8";
@@ -27,7 +26,7 @@ public class Conf {
 
 	private static String countryCode = "AT";
 	private static boolean transformEszett = false; // ture = Eszeet should be changed to "ss" in the translations
-        private static boolean regexCheck = false; // true = regex check is performed on the terms in the current file
+        private static boolean regexCheck = true; // true = regex check is performed on the terms in the current file
 
 
 
