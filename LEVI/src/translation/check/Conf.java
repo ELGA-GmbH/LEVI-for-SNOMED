@@ -3,34 +3,28 @@ package translation.check;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class Conf {
-
-	public Conf() {
-		// Default constructor
-	}
-
+	
+		
 	// Paths to the files and directories
-	// TODO: adapt
-        private static String filePathCurrent = "C:\\\\Users\\\\someuser\\\\Downloads\\\\11_2025\\\\current\\\\Austrian_terms_20251103162638691-NovemberRelease.xlsx"; // Path to the CSV/Excel file with the terms to be compared
-
-        // TODO: adapt
-	private static String filePathPrevious = "C:\\\\Users\\\\someuser\\\\Downloads\\\\11_2025\\\\previous\\\\termSpace-Export-OktoberRelease.xlsx"; // Path to the previous CSV/Excel file with the terms to be compared
-        // TODO: adapt
-	private static String destination = "C:\\\\Users\\\\someuser\\\\Downloads\\\\11_2025\\\\results"; // Path where to create the three files
+	private String filePathCurrent = "PATH_TO_CURRENT_FILE"; // Path to the CSV/Excel file with the terms to be compared
+	private String filePathPrevious = "PATCH_TO_PREVIOUS_FILE"; // Path to the previous CSV/Excel file with the terms to be compared
+	private String destination = "DESTINATION_WEHER_TO_CREATE_FILES"; // Path where to create the three files	
 
 	// Database connection variables
-	private static String SERVER_URL = "jdbc:mariadb://localhost:3306/SCT?useUnicode=true&characterEncoding=UTF-8";
-	private static String USERNAME = "root";
-	private static String PASSWORD = "root";
-
-	private static String countryCode = "AT";
-	private static boolean transformEszett = false; // ture = Eszeet should be changed to "ss" in the translations
-        private static boolean regexCheck = true; // true = regex check is performed on the terms in the current file
-
-
-
-
+	private String SERVER_URL = "jdbc:mysql://localhost/---INSERT_DB_NAME---?useUnicode=true&characterEncoding=UTF-8";
+	private String USERNAME = "root";
+	private String PASSWORD = "";
+	
+	//default settings
+	private String countryCode = "CH"; // Country code for selecting the local language reference sets
+	private boolean transformEszett = true ;// ture = Eszeet should be changed to "ss" in the translations
+	private boolean regexCheck = true; // true = regex check is performed on the terms in the current file
+	
+	
+	
 	//// Language reference sets for different countries
     private static final Map<String, Map<String, String>> countryToLanguageRefSets = new HashMap<>();
 
@@ -85,6 +79,44 @@ public class Conf {
         ));
     }
 
+    public Conf() {
+		// Default constructor
+    	this.countryCode = "CH";
+        this.transformEszett = true; // CH-Default
+	}
+       
+    public void setFilePathCurrent(String filePathCurrent) {
+		this.filePathCurrent = filePathCurrent;
+	}
+    
+    public void setFilePathPrevious(String filePathPrevious) {
+    	this.filePathPrevious = filePathPrevious;
+    }
+	
+	public void setDestination(String destination) {
+		this.destination = destination;
+	}
+    
+    public void setTransformEszett(boolean transformEszett) {
+        this.transformEszett = transformEszett;
+    }
+    
+    public void setRegexCheck(boolean regexCheck) {
+        this.regexCheck = regexCheck;
+    }
+    
+    public void setDbUrl(String serverUrl) {
+		this.SERVER_URL = serverUrl;
+	}
+    
+    public void setDbUsername(String username) {
+    	this.USERNAME = username;
+    }
+    
+    public void setDbPassword(String password) {
+		this.PASSWORD = password;
+	}
+    
     private Map<String, String> getLanguageRefSets(String countryCode) {
         return countryToLanguageRefSets.getOrDefault(countryCode.toUpperCase(), Collections.emptyMap());
     }
@@ -92,21 +124,21 @@ public class Conf {
     public String getLanguageRefSetId(String languageCode) {
         return getLanguageRefSets(countryCode).get(languageCode.toLowerCase());
     }
-
-    public static String getSERVER_URL() {
+    
+    public  String getSERVER_URL() {
     	return SERVER_URL;
     }
-
-    public static String getUSERNAME() {
+    
+    public  String getUSERNAME() {
     	return USERNAME;
     }
-
-    public static String getPASSWORD() {
+    
+    public  String getPASSWORD() {
 		return PASSWORD;
 	}
 
     public String getFilePathCurrent() {
-		return filePathCurrent;
+		return this.filePathCurrent;
 	}
 
     public String getFilePathPrevious() {
@@ -121,10 +153,26 @@ public class Conf {
 		return transformEszett;
 	}
 
-	public static String getCountryCode() {
+    
+    public Set<String> getLocalLanguages() {
+        Map<String, String> langs =
+                countryToLanguageRefSets.getOrDefault(countryCode.toUpperCase(), Map.of());
+        return langs.keySet();
+    }
+    
+    public boolean isLocalLanguage(String languageCode) {
+        if (languageCode == null) return false;
+        return getLocalLanguages().contains(languageCode.trim().toLowerCase());
+    }
+
+	public String getCountryCode() {
 		return countryCode;
 	}
-
+	
+    public void setCountryCode(String countryCode) {
+        this.countryCode = countryCode;
+    }
+	
 	public boolean checkRegex() {
 		return regexCheck;
 	}
