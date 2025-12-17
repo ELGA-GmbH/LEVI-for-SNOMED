@@ -207,7 +207,8 @@ public class Comparator {
 		                && !newLangCode.isEmpty() && !oldLangCode.isEmpty() 
 		                && newLangCode.equals(oldLangCode)) {
 		            matchFound = true;
-
+		            
+		            System.out.println("✅ Translation exists: " + conceptId + " - " + newTerm);
 		            if ("0".equals(oldDesccriptionStatus)) {
 //		                System.out.println("🔴 Reactivate translation: " + conceptId + " - " + newTerm);
 		                resultCollector.setFullTranslationChanges(
@@ -228,8 +229,19 @@ public class Comparator {
 		                		"Translation reactivation"
 			                );		                
 		            }		            
-		            else if (!oldAccept.isEmpty() && !newAccept.isEmpty() 
-		                    && !oldAccept.equalsIgnoreCase(newAccept)) {
+		            else if (
+		            		// case if oldAccept is empty of null
+		                    ((oldAccept == null || oldAccept.isEmpty()) 
+		                        && newAccept != null && !newAccept.isEmpty())
+		                    
+		                    // case if newAccept is empty or null
+		                    || ((newAccept == null || newAccept.isEmpty()) 
+		                        && oldAccept != null && !oldAccept.isEmpty())
+		                    
+		                    // both not empty but different
+		                    || (oldAccept != null && !oldAccept.isEmpty()
+		                        && newAccept != null && !newAccept.isEmpty()
+		                        && !oldAccept.equalsIgnoreCase(newAccept))) {
 //		                System.out.println("🔁 Acceptability changed: " + conceptId + " - " + newTerm);
 		                resultCollector.setFullTranslationChanges(
 		                		oldDescriptionId, 

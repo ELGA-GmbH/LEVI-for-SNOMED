@@ -84,45 +84,57 @@ public class DbConnection {
 		connect();
 
 		String baseQuery = """
-				    SELECT
-				        d.id,
-				        d.conceptId,
-				        d.term,
-				        d.languageCode,
-				        d.typeId,
-				        d.caseSignificanceId,
-				        d.effectiveTime,
-				        d.active AS descriptionActive,
-				        c.active AS conceptActive,
-				        l.acceptabilityId
-				    FROM
-				        full_description d
-				    LEFT JOIN (
-				        SELECT
-				            fc1.*
-				        FROM
-				            full_concept fc1
-				        INNER JOIN (
-				            SELECT
-				                id,
-				                MAX(effectiveTime) AS max_time
-				            FROM
-				                full_concept
-				            GROUP BY
-				                id
-				        ) latest
-				        ON fc1.id = latest.id
-				        AND fc1.effectiveTime = latest.max_time
-				    ) c
-				    ON d.conceptId = c.id
-				    LEFT JOIN
-				        full_refset_Language l
-				        ON d.id = l.referencedComponentId
-				    WHERE
-				        d.conceptId
-				""";
+			    SELECT
+			        d.id,
+			        d.conceptId,
+			        d.term,
+			        d.languageCode,
+			        d.typeId,
+			        d.caseSignificanceId,
+			        d.effectiveTime,
+			        d.active AS descriptionActive,
+			        c.active AS conceptActive,
+			        l.acceptabilityId
+			    FROM (
+			        SELECT fd1.*
+			        FROM full_description fd1
+			        INNER JOIN (
+			            SELECT
+			                conceptId,
+			                languageCode,
+			                term,
+			                MAX(effectiveTime) AS max_time
+			            FROM full_description
+			            WHERE conceptId IN (/*IDS*/)
+			            GROUP BY conceptId, languageCode, term
+			        ) latest_d
+			          ON fd1.conceptId     = latest_d.conceptId
+			         AND fd1.languageCode  = latest_d.languageCode
+			         AND fd1.term          = latest_d.term
+			         AND fd1.effectiveTime = latest_d.max_time
+			    ) d
+			    LEFT JOIN (
+			        SELECT fc1.*
+			        FROM full_concept fc1
+			        INNER JOIN (
+			            SELECT
+			                id,
+			                MAX(effectiveTime) AS max_time
+			            FROM full_concept
+			            WHERE id IN (/*IDS*/)
+			            GROUP BY id
+			        ) latest
+			          ON fc1.id = latest.id
+			         AND fc1.effectiveTime = latest.max_time
+			    ) c
+			      ON d.conceptId = c.id
+			    LEFT JOIN full_refset_Language l
+			      ON d.id = l.referencedComponentId;
+			    """;
+
+
 		// Generate batched queries for concept IDs
-		List<String> batchedQueries = buildBatchedQueries(conceptIDs, baseQuery);
+		List<String> batchedQueries = buildBatchedQueries2(conceptIDs, baseQuery);
 
 		for (String query : batchedQueries) {
 			try (PreparedStatement stmt = connection.prepareStatement(query)) {
@@ -212,14 +224,17 @@ public class DbConnection {
 	    // create TEMP TABLE with languageCode
 	    String createTempTable = """
 	        CREATE TEMPORARY TABLE IF NOT EXISTS tmp_pairs (
-	            term VARBINARY(255),
-	            conceptId VARBINARY(50),
-	            languageCode VARBINARY(10)
-	        )
+			    term VARBINARY(255),
+			    conceptId VARBINARY(50),
+			    languageCode VARBINARY(10)
+			) ENGINE=MEMORY;
 	    """;
+	    String indexTempTable = "CREATE INDEX idx_tmp_pairs_concept_term_lang ON tmp_pairs (conceptId, term(200), languageCode);";
+	    
 
 	    try (Statement stmt = connection.createStatement()) {
 	        stmt.execute(createTempTable);
+	        stmt.execute(indexTempTable);
 	    }
 
 	    // insert pairs
@@ -241,23 +256,32 @@ public class DbConnection {
 	    System.out.println("Temporary table tmp_pairs created and populated with term-concept-language pairs.");
 
 	    String query = """
-	        SELECT fd.id, fd.term, fd.conceptId, fd.active, fd.languageCode
-	        FROM full_description fd
-	        INNER JOIN (
-	            SELECT conceptId, term, languageCode, MAX(CAST(effectiveTime AS UNSIGNED)) AS max_effectiveTime
-	            FROM full_description
-	            GROUP BY conceptId, term, languageCode
-	        ) latest
-	          ON fd.conceptId = latest.conceptId
-	         AND fd.term = latest.term
-	         AND fd.languageCode = latest.languageCode
-	         AND CAST(fd.effectiveTime AS UNSIGNED) = latest.max_effectiveTime
-	        INNER JOIN tmp_pairs tp
-	          ON fd.conceptId = tp.conceptId
-	         AND fd.term = tp.term
-	         AND fd.languageCode = tp.languageCode
-	        WHERE fd.active = 1
-	    """;
+	            SELECT fd.id,
+	                   fd.term,
+	                   fd.conceptId,
+	                   fd.active,
+	                   fd.languageCode
+	            FROM full_description fd
+	            INNER JOIN (
+	                SELECT fd2.conceptId,
+	                       fd2.term,
+	                       fd2.languageCode,
+	                       MAX(fd2.effectiveTime) AS max_effectiveTime
+	                FROM full_description fd2
+	                INNER JOIN tmp_pairs tp
+	                  ON fd2.conceptId   = tp.conceptId
+	                 AND fd2.term        = tp.term
+	                 AND fd2.languageCode = tp.languageCode
+	                GROUP BY fd2.conceptId,
+	                         fd2.term,
+	                         fd2.languageCode
+	            ) latest
+	              ON fd.conceptId    = latest.conceptId
+	             AND fd.term         = latest.term
+	             AND fd.languageCode = latest.languageCode
+	             AND fd.effectiveTime = latest.max_effectiveTime
+	            WHERE fd.active = 1
+	        """;
 
 	    try (PreparedStatement ps = connection.prepareStatement(query);
 	         ResultSet rs = ps.executeQuery()) {
@@ -348,6 +372,26 @@ public class DbConnection {
 		}
 
 		return queries;
+	}
+	
+	public static List<String> buildBatchedQueries2(Set<String> ids, String baseQuery) {
+		 List<String> queries = new ArrayList<>();
+		    int batchSize = 500;
+		    List<String> batch = new ArrayList<>(batchSize);
+
+		    for (String id : ids) {
+		        batch.add("'" + id + "'");
+		        if (batch.size() == batchSize) {
+		            String idList = String.join(",", batch);
+		            queries.add(baseQuery.replace("/*IDS*/", idList));
+		            batch.clear();
+		        }
+		    }
+		    if (!batch.isEmpty()) {
+		        String idList = String.join(",", batch);
+		        queries.add(baseQuery.replace("/*IDS*/", idList));
+		    }
+		    return queries;
 	}
 
 	public static List<String> buildBatchedTermConceptIdQueries(Set<Pair<String, String>> termConceptPairs,
