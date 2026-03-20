@@ -87,7 +87,17 @@ public class ResultCollector {
 		addEntry("TRANSLATION_CHANGES", L);
 	}
 
-	
+	public void setDuplicateTerm(String conceptId1, String descriptionId1, String languageCode1,
+	        String typeId1, String term, String typeId2, String languageCode2,
+	        String descriptionId2, String conceptId2, String sameConcept) {
+	    List<String> entry = new ArrayList<>(Arrays.asList(
+	        conceptId1, descriptionId1, languageCode1, typeId1,
+	        term,
+	        typeId2, languageCode2, descriptionId2, conceptId2, sameConcept
+	    ));
+	    addEntry("DUPLICATE_TERM", entry);
+	}
+
 	
 	public List<ResultCollector> getEntriesByType(String type) {
 		return entries.stream().filter(e -> e.getType().equals(type)).collect(Collectors.toList());

@@ -14,8 +14,12 @@ import java.util.Scanner;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class Comparator {
 		
+	private static final Logger logger = LoggerFactory.getLogger(Comparator.class);
 	private final ResultCollector resultCollector;
 	private final Conf conf;
 	private final DbConnection dbConnection;
@@ -29,7 +33,7 @@ public class Comparator {
 
 	public List<List<String>> createTranslationsOverview() throws IOException, ClassNotFoundException, SQLException {
 
-		System.out.println("Creating overview of translations...");
+		logger.info("Creating overview of translations...");
 		List<String> header = Arrays.asList("Concept ID", "GB/US FSN Term (For reference only)", "Status",
 				"Preferred Term (For reference only)", "Translated Term DE", "Translated Term FR",
 				"Translated Term IT");
@@ -109,33 +113,33 @@ public class Comparator {
 			}
 		}
 
-		System.out.println("Output data created.");
+		logger.info("Output data created.");
 
 		return structuredFile;
 	}
 
 	public List<List<String>> generateDescriptionAdditionAndChangesDelta() throws IOException, SQLException, ClassNotFoundException {
 		
-		System.out.println("Starting with description addition delta...");
+		logger.info("Starting with description addition delta...");
 		String specificLanguage = null;
 		
 		@SuppressWarnings("resource")
 		Scanner scanner = new Scanner(System.in);
 		while (true) {
-			    System.out.print("Is the import for a specific language? (de, fr, it) [press Enter for none]: ");
-			    specificLanguage = scanner.nextLine().trim().toLowerCase();
-	
-			    if (specificLanguage.isEmpty()) {
-			        specificLanguage = null;
-			        System.out.println("--> No specific language selected.");
-			        break;
-			    }
-	
-			    if (specificLanguage.equals("de") || specificLanguage.equals("fr") || specificLanguage.equals("it")) {
-			        break;
-			    } else {
-			        System.out.println("Invalid language code. Please enter 'de', 'fr', or 'it', or press Enter for none.");
-			    }
+			logger.info("Is the import for a specific language? (de, fr, it) [press Enter for none]: ");
+			specificLanguage = scanner.nextLine().trim().toLowerCase();
+
+			if (specificLanguage.isEmpty()) {
+				specificLanguage = null;
+				logger.info("--> No specific language selected.");
+				break;
+			}
+
+			if (specificLanguage.equals("de") || specificLanguage.equals("fr") || specificLanguage.equals("it")) {
+				break;
+			} else {
+				logger.info("Invalid language code. Please enter 'de', 'fr', or 'it', or press Enter for none.");
+			}
 		}
 
 		//////////////// Starting with translation additions
@@ -155,9 +159,9 @@ public class Comparator {
 			conceptID.add(conceptIDentry);
 		}
 
-		System.out.println("Fetching translations from DB for " + conceptID.size() + " concept IDs...");		
+		logger.info("Fetching translations from DB for {} concept IDs...", conceptID.size());		
 		dbConnection.searchTranslations(conceptID); // Fetch translations from the database and populate oldTranslation
-		System.out.println("Translations fetched. Starting comparison...");
+		logger.info("Translations fetched. Starting comparison...");
 		
 		
 		// Step 2: structure translation from DB according to ConceptId --> Map with List<List<String>>
@@ -179,7 +183,7 @@ public class Comparator {
 		    String newTypeId   = newEntry.get(6);
 		    String newLanguageRefset = newEntry.get(7);
 		    String newAccept   = newEntry.get(8);
-		    		    
+				    
 		    if (specificLanguage != null && !specificLanguage.equalsIgnoreCase(newLangCode)) {
 		        newLangCode = specificLanguage; // Set to the specific language if provided
 		        newEntry.set(4, newLangCode); // Update the language code in the new entry
@@ -208,29 +212,28 @@ public class Comparator {
 		                && newLangCode.equals(oldLangCode)) {
 		            matchFound = true;
 		            
-		            System.out.println("✅ Translation exists: " + conceptId + " - " + newTerm);
+		            logger.info("✅ Translation exists: {} - {}", conceptId, newTerm);
 		            if ("0".equals(oldDesccriptionStatus)) {
 //		                System.out.println("🔴 Reactivate translation: " + conceptId + " - " + newTerm);
 		                resultCollector.setFullTranslationChanges(
-		                		oldDescriptionId, 
-		                		"", //placeholder for preferred term
-		                		newTerm,
-		                		oldCaseSignificance,
-		                		newTypeId,
-		                		newLanguageRefset, newAccept, 
-		                		"", //placeholder for language reference set 2
-		                		"", //placeholder for acceptability 2
-		                		"", //placeholder for language reference set 3
-		                		"", //placeholder for acceptability 3
-		                		"", //placeholder for language reference set 4
-		                		"", //placeholder for acceptability 4
-		                		"", //placeholder for language reference set 5
-		                		"", //placeholder for acceptability 5
-		                		"Translation reactivation"
-			                );		                
-		            }		            
-		            else if (
-		            		// case if oldAccept is empty of null
+								oldDescriptionId, 
+								"", //placeholder for preferred term
+								newTerm,
+								oldCaseSignificance,
+								newTypeId,
+								newLanguageRefset, newAccept, 
+								"", //placeholder for language reference set 2
+								"", //placeholder for acceptability 2
+								"", //placeholder for language reference set 3
+								"", //placeholder for acceptability 3
+								"", //placeholder for language reference set 4
+								"", //placeholder for acceptability 4
+								"", //placeholder for language reference set 5
+								"", //placeholder for acceptability 5
+								"Translation reactivation"
+			                );		                		
+		            }		            	            	else if (
+		            				// case if oldAccept is empty of null
 		                    ((oldAccept == null || oldAccept.isEmpty()) 
 		                        && newAccept != null && !newAccept.isEmpty())
 		                    
@@ -244,21 +247,21 @@ public class Comparator {
 		                        && !oldAccept.equalsIgnoreCase(newAccept))) {
 //		                System.out.println("🔁 Acceptability changed: " + conceptId + " - " + newTerm);
 		                resultCollector.setFullTranslationChanges(
-		                		oldDescriptionId, 
-		                		"", //placeholder for preferred term
-		                		newTerm,
-		                		oldCaseSignificance,
-		                		newTypeId,
-		                		newLanguageRefset, newAccept, 
-		                		"", //placeholder for language reference set 2
-		                		"", //placeholder for acceptability 2
-		                		"", //placeholder for language reference set 3
-		                		"", //placeholder for acceptability 3
-		                		"", //placeholder for language reference set 4
-		                		"", //placeholder for acceptability 4
-		                		"", //placeholder for language reference set 5
-		                		"", //placeholder for acceptability 5
-		                		"Acceptability changed from " + oldAccept + " to " + newAccept + " for concept " + conceptId
+								oldDescriptionId, 
+								"", //placeholder for preferred term
+								newTerm,
+								oldCaseSignificance,
+								newTypeId,
+								newLanguageRefset, newAccept, 
+								"", //placeholder for language reference set 2
+								"", //placeholder for acceptability 2
+								"", //placeholder for language reference set 3
+								"", //placeholder for acceptability 3
+								"", //placeholder for language reference set 4
+								"", //placeholder for acceptability 4
+								"", //placeholder for language reference set 5
+								"", //placeholder for acceptability 5
+								"Acceptability changed from " + oldAccept + " to " + newAccept + " for concept " + conceptId
 			                );
 		            }
 		            break;
@@ -276,11 +279,11 @@ public class Comparator {
 		        String upperCaseResult = regexResults.get(4);
 		        
 		        if (conf.checkRegex()) {
-		        	copy.add(18, quotesResult);
-			        copy.add(19, softHyphenResult);
-			        copy.add(20, spaceAroundSlashResult);
-			        copy.add(21, apostropheResult);
-			        copy.add(22, upperCaseResult);
+					copy.add(18, quotesResult);
+				    copy.add(19, softHyphenResult);
+				    copy.add(20, spaceAroundSlashResult);
+				    copy.add(21, apostropheResult);
+				    copy.add(22, upperCaseResult);
 		        }
 //		        copy.add(18, quotesResult);
 //		        copy.add(19, softHyphenResult);
@@ -291,13 +294,13 @@ public class Comparator {
 		        deltaTranslations.add(copy);
 		    }
 		}
-		System.out.println("Delta translations created with " + deltaTranslations.size() + " entries.");
+		logger.info("Delta translations created with {} entries.", deltaTranslations.size());
 		return deltaTranslations;
 	}
 
 	public List<List<String>> generateDescriptionInactivationDelta() throws IOException, SQLException, ClassNotFoundException {
 
-		System.out.println("Starting with description inactivation delta...");
+		logger.info("Starting with description inactivation delta...");
 		List<String> headerInactivation = Arrays.asList("Description ID","Language Code", "Concept ID", "Preferred Term (For reference only)", "Term (For reference only)", "Inactivation Reason", "Association Target ID 1",
 				"Association Target ID 2", "Association Target ID 3", "Association Target ID 4", "Notes");
 		List<List<String>> deltaInactivations = new ArrayList<>();
@@ -324,7 +327,7 @@ public class Comparator {
 			for (List<String> row : resultCollector.getDataByType("TRANSLATION_INACTIVATION_CURRENT")) {
 				String term = row.get(1);
 				String languageCode = row.get(2);
-							
+						
 				if ("de".equalsIgnoreCase(languageCode) && term.contains("ß")) {
 				       term = term.replace("ß", "ss");
 				       row.set(1, term); // Update the term in the new entry
@@ -333,9 +336,9 @@ public class Comparator {
 		}
 		
 		
-		System.out.println("Fetching translations from DB for local languages only...");		
+		logger.info("Fetching translations from DB for local languages only...");		
 		dbConnection.searchDescriptions(localRows); // Fetch descriptions from the database and populate oldTranslation
-		System.out.println("Translations fetched. Starting comparison...");
+		logger.info("Translations fetched. Starting comparison...");
 		
 		// Adding local inactivations to delta
 		for (List<String> newEntry : resultCollector.getDataByType("EXTENSION_INACTIVATION")) {
@@ -365,7 +368,7 @@ public class Comparator {
 	        deltaInactivations.add(foreignRow);
 	    }
 		
-		System.out.println("Delta inactivations created with " + deltaInactivations.size() + " entries.");	
+		logger.info("Delta inactivations created with {} entries.", deltaInactivations.size());	
 		return deltaInactivations;
 	}
 	
@@ -380,7 +383,7 @@ public class Comparator {
 		
 		for (List<String> newEntry : resultCollector.getDataByType("TRANSLATION_CHANGES")) {
 	        deltaChanges.add(newEntry);
-		}	
+		} 	
 		return deltaChanges;
 	}
 
@@ -448,58 +451,59 @@ public class Comparator {
 			additionRow.add(placeholder); // Acceptability 4
 			additionRow.add(placeholder); // Notes
 			
-			eszettAdditions.add(additionRow);	
+			eszettAdditions.add(additionRow); 	
 		}
 		
 		List<List<List<String>>> result = new ArrayList<>();
-	    result.add(eszettInactivate);
-	    result.add(eszettAdditions);
+    	result.add(eszettInactivate);
+    	result.add(eszettAdditions);
 		
 		return result;
 		
 	}
 	
 	public List<List<String>> generateDeltaOfNotPublishedTranslations() throws IOException, SQLException, ClassNotFoundException {
-		System.out.println("Starting delta of not published translations...");
-		
-		final int PREV_CONCEPT_ID   = 0;
-	    final int PREV_TERM         = 3;
-	    final int PREV_LANGUAGECODE = 4;
-		
-	    final int CURR_CONCEPT_ID   = 0;
-	    final int CURR_TERM         = 3;
-	    final int CURR_LANGUAGECODE = 4;
-	    
-	    final int INA_CONCEPT_ID    = 3;
-		
-		List<String> headerInactivation = Arrays.asList("Description ID","Language Code", "Concept ID", "Preferred Term (For reference only)", "Term (For reference only)", "Inactivation Reason", "Association Target ID 1",
-				"Association Target ID 2", "Association Target ID 3", "Association Target ID 4", "Notes");
-		
-		
-		List<List<String>> deltaNotFoundTranslations = new ArrayList<>();
-		deltaNotFoundTranslations.add(headerInactivation);	
-		List<List<String>> previousEntries            = resultCollector.getDataByType("NEW_TRANSLATION_PREVIOUS");
-	    List<List<String>> currentEntries             = resultCollector.getDataByType("NEW_TRANSLATION_CURRENT");
-	    List<List<String>> currentInactivationEntries = resultCollector.getDataByType("TRANSLATION_INACTIVATION_CURRENT");
+			logger.info("Starting delta of not published translations...");
+			
+			final int PREV_CONCEPT_ID   = 0;
+		    final int PREV_TERM         = 3;
+		    final int PREV_LANGUAGECODE = 4;
+			
+		    final int CURR_CONCEPT_ID   = 0;
+		    final int CURR_TERM         = 3;
+		    final int CURR_LANGUAGECODE = 4;
+		    
+		    final int INA_CONCEPT_ID    = 3;
+			
+			List<String> headerInactivation = Arrays.asList("Description ID","Language Code", "Concept ID", "Preferred Term (For reference only)", "Term (For reference only)", "Inactivation Reason", "Association Target ID 1",
+					"Association Target ID 2", "Association Target ID 3", "Association Target ID 4", "Notes");
+			
+			
+			List<List<String>> deltaNotFoundTranslations = new ArrayList<>();
+			deltaNotFoundTranslations.add(headerInactivation); 	
+			List<List<String>> previousEntries            = resultCollector.getDataByType("NEW_TRANSLATION_PREVIOUS");
+		    List<List<String>> currentEntries             = resultCollector.getDataByType("NEW_TRANSLATION_CURRENT");
+		    List<List<String>> currentInactivationEntries = resultCollector.getDataByType("TRANSLATION_INACTIVATION_CURRENT");
 
-	
-	    Function<List<String>, String> comboKeyCurr = row -> {
-	        String c = row.get(CURR_CONCEPT_ID);
-	        String t = row.get(CURR_TERM);
-	        String l = row.get(CURR_LANGUAGECODE);
-	        return c + "||" + t + "||" + l;
-	    };
-	    
-	    // ---------- Prepare sets ----------
-	    Set<String> currentKeys = new HashSet<>(Math.max(16, currentEntries.size() * 2));
-	    for (List<String> row : currentEntries) {
-	        currentKeys.add(comboKeyCurr.apply(row));
-	    }
+		
+		
+		    Function<List<String>, String> comboKeyCurr = row -> {
+		        String c = row.get(CURR_CONCEPT_ID);
+		        String t = row.get(CURR_TERM);
+		        String l = row.get(CURR_LANGUAGECODE);
+		        return c + "||" + t + "||" + l;
+		    };
+		    
+		    // ---------- Prepare sets ----------
+		    Set<String> currentKeys = new HashSet<>(Math.max(16, currentEntries.size() * 2));
+		    for (List<String> row : currentEntries) {
+		        currentKeys.add(comboKeyCurr.apply(row));
+		    }
 
-	    Set<String> inactivationConceptIds = new HashSet<>(Math.max(16, currentInactivationEntries.size() * 2));
-	    for (List<String> row : currentInactivationEntries) {
-	        inactivationConceptIds.add(row.get(INA_CONCEPT_ID));
-	    }      
+		    Set<String> inactivationConceptIds = new HashSet<>(Math.max(16, currentInactivationEntries.size() * 2));
+		    for (List<String> row : currentInactivationEntries) {
+		        inactivationConceptIds.add(row.get(INA_CONCEPT_ID));
+		    }      
         
         // Process each entry in NEW_TRANSLATION_PREVIOUS
         for (List<String> previousEntry : previousEntries) {
@@ -531,20 +535,40 @@ public class Comparator {
         }
         
         return deltaNotFoundTranslations;
-	}
-	
-	
-	// Used to find the index of the concept that is already in the structuredList.
-	private static int findInnerListIndex(List<List<String>> outerList, String element) {
-		for (int i = 0; i < outerList.size(); i++) {
-			List<String> innerList = outerList.get(i);
-			if (innerList.contains(element)) {
-				return i; // Return the index of the inner list
-			}
 		}
-		return -1; // Return -1 if the element is not found in any inner list
-	}
+		
+	public List<List<String>> checkDuplicateTerms() throws SQLException, ClassNotFoundException {
+	    logger.info("Checking for duplicate terms...");
 
+	    dbConnection.searchDuplicateTerms();
+
+	    List<List<String>> result = new ArrayList<>();
+	    List<String> header = Arrays.asList(
+	        "Concept ID 1", "Description ID 1", "Language Code 1", "Type ID 1",
+	        "Term (duplicate)",
+	        "Type ID 2", "Language Code 2", "Description ID 2", "Concept ID 2",
+	        "Same Concept"
+	    );
+	    result.add(header);
+
+	    for (List<String> entry : resultCollector.getDataByType("DUPLICATE_TERM")) {
+	        result.add(new ArrayList<>(entry));
+	    }
+
+	    logger.info("Duplicate term check: {} duplicates found.", result.size() - 1);
+	    return result;
+	}
+	
+		// Used to find the index of the concept that is already in the structuredList.
+		private static int findInnerListIndex(List<List<String>> outerList, String element) {
+			for (int i = 0; i < outerList.size(); i++) {
+				List<String> innerList = outerList.get(i);
+				if (innerList.contains(element)) {
+					return i; // Return the index of the inner list
+				}
+			}
+			return -1; // Return -1 if the element is not found in any inner list
+		}
 
 
 

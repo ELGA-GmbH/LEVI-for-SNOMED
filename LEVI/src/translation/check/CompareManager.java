@@ -72,4 +72,11 @@ public class CompareManager {
 		writer.writeToFile(destination + "\\DeltaNotPublishedTranslations.tsv", comparator.generateDeltaOfNotPublishedTranslations());
 		
 	}
+	
+	public void runCheckDuplicateTerms(String destination) 
+	        throws IOException, ClassNotFoundException, SQLException {
+	    writer.writeToFile(destination + "\\DuplicateTerms.tsv", 
+	        comparator.checkDuplicateTerms());
+	}
+
 }

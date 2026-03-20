@@ -6,7 +6,10 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
 
 
+
 import java.io.UnsupportedEncodingException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The DB_connection class facilitates interactions with the SNOMED CT database,
@@ -29,11 +32,13 @@ import java.io.UnsupportedEncodingException;
  */
 public class DbConnection {
 
+    private static final Logger logger = LoggerFactory.getLogger(DbConnection.class);
+
 	// JDBC driver and connection settings
 	private Connection connection;
 	private ResultCollector resultCollector;
     private final Conf conf;
-	
+
 	public DbConnection(ResultCollector collector, Conf conf) {
         this.resultCollector = collector;
         this.conf = conf;
@@ -51,7 +56,7 @@ public class DbConnection {
 		try {
 			connection = DriverManager.getConnection(conf.getSERVER_URL(), conf.getUSERNAME(), conf.getPASSWORD());
 		} catch (SQLException e) {
-			System.err.println("Failed to establish connection: " + e.getMessage());
+			logger.error("Failed to establish connection: {}", e.getMessage());
 		}
 	}
 
@@ -63,7 +68,7 @@ public class DbConnection {
 			try {
 				connection.close();
 			} catch (SQLException e) {
-				System.err.println("Failed to close connection: " + e.getMessage());
+				logger.error("Failed to close connection: {}", e.getMessage());
 			}
 		}
 	}
@@ -243,7 +248,7 @@ public class DbConnection {
 	        for (Triple<String, String, String> pair : termConceptPairs) {
 	            String conceptId = pair.getMiddle();
 	            if (conceptId.length() > 30) {
-	                System.out.println("❗ conceptId too long: " + conceptId + " (length: " + conceptId.length() + ")");
+	                logger.warn("❗ conceptId too long: {} (length: {})", conceptId, conceptId.length());
 	            }
 	            ps.setString(1, pair.getLeft());
 	            ps.setString(2, pair.getMiddle());
@@ -253,7 +258,7 @@ public class DbConnection {
 	        ps.executeBatch();
 	    }
 
-	    System.out.println("Temporary table tmp_pairs created and populated with term-concept-language pairs.");
+	    logger.info("Temporary table tmp_pairs created and populated with term-concept-language pairs.");
 
 	    String query = """
 	            SELECT fd.id,
@@ -285,7 +290,7 @@ public class DbConnection {
 
 	    try (PreparedStatement ps = connection.prepareStatement(query);
 	         ResultSet rs = ps.executeQuery()) {
-	        System.out.println("Processing translation result set for inactivations...");
+	        logger.info("Processing translation result set for inactivations...");
 	        processTranslationResultSet("inactivations", rs);
 	    }
 
@@ -333,7 +338,7 @@ public class DbConnection {
 			      AND fd.active = 1
 			""";
 		
-		System.out.println("Eszett check: Starting with query...");
+		logger.info("Eszett check: Starting with query...");
 		try (Statement stmt = connection.createStatement(); ResultSet rs = stmt.executeQuery(query)) {		
 			processTranslationResultSet("searchEszett", rs);
 		}
@@ -418,6 +423,87 @@ public class DbConnection {
 	}
 
 	/**
+	 * Searches for duplicate terms across active descriptions in the extension,
+	 * processes the results and populates the resultCollector with type "DUPLICATE_TERM".
+	 *
+	 * @throws SQLException             if a database access error occurs
+	 * @throws ClassNotFoundException   if the JDBC driver is not found
+	 */
+	public void searchDuplicateTerms() throws SQLException, ClassNotFoundException {
+	    connect();
+
+	    String query = """
+	            SELECT
+	                d1.conceptId,
+	                d1.id,
+	                d1.languageCode,
+	                d1.typeId,
+	                d1.term,
+	                d2.typeId,
+	                d2.languageCode,
+	                d2.id,
+	                d2.conceptId,
+	                CASE WHEN d1.conceptId = d2.conceptId THEN 'true' ELSE 'false' END AS sameConcept
+	            FROM (
+	                SELECT fd1.*
+	                FROM full_description fd1
+	                INNER JOIN (
+	                    SELECT conceptId, languageCode, term, MAX(effectiveTime) AS max_time
+	                    FROM full_description
+	                    GROUP BY conceptId, languageCode, term
+	                ) latest
+	                  ON fd1.conceptId     = latest.conceptId
+	                 AND fd1.languageCode  = latest.languageCode
+	                 AND fd1.term          = latest.term
+	                 AND fd1.effectiveTime = latest.max_time
+	                WHERE fd1.active = 1
+	            ) d1
+	            JOIN (
+	                SELECT fd2.*
+	                FROM full_description fd2
+	                INNER JOIN (
+	                    SELECT conceptId, languageCode, term, MAX(effectiveTime) AS max_time
+	                    FROM full_description
+	                    GROUP BY conceptId, languageCode, term
+	                ) latest
+	                  ON fd2.conceptId     = latest.conceptId
+	                 AND fd2.languageCode  = latest.languageCode
+	                 AND fd2.term          = latest.term
+	                 AND fd2.effectiveTime = latest.max_time
+	                WHERE fd2.active = 1
+	            ) d2
+	              ON d1.term          = d2.term
+	             AND d1.languageCode  = d2.languageCode
+	             AND d1.id            < d2.id
+	            WHERE d1.languageCode IN ('de', 'fr', 'it')
+	            """;
+
+	    logger.info("Duplicate term check: Starting query...");
+	    try (Statement stmt = connection.createStatement();
+	         ResultSet rs = stmt.executeQuery(query)) {
+	        while (rs.next()) {
+	            resultCollector.setDuplicateTerm(
+	                rs.getString("d1.conceptId"),   // conceptId1
+	                rs.getString("d1.id"),           // descriptionId1
+	                rs.getString("d1.languageCode"), // languageCode1
+	                rs.getString("d1.typeId"),       // typeId1
+	                rs.getString("d1.term"),         // term
+	                rs.getString("d2.typeId"),       // typeId2
+	                rs.getString("d2.languageCode"), // languageCode2
+	                rs.getString("d2.id"),           // descriptionId2
+	                rs.getString("d2.conceptId"),    // conceptId2
+	                rs.getString("sameConcept")      // sameConcept
+	            );
+	        }
+	    }
+	    logger.info("Duplicate term check: Found {} entries.",
+	        resultCollector.getDataByType("DUPLICATE_TERM").size());
+	    disconnect();
+	}
+
+	
+	
+	/**
 	 * Processes the given `ResultSet` to extract translation data and populates the
 	 * old translation data for concepts.
 	 * 
@@ -473,20 +559,20 @@ public class DbConnection {
 	                break;
 
 	            case "overview":
-					resultCollector.setFullExtensionTranslation(conceptId, conceptStatus,
-							"", // FSN placeholder
-							"", // Preferred Term placeholder
-							term, languageCode, caseSignificance,
-							type, // Type placeholder
-							languageReferenceSet, // Language Reference Set placeholder
-							acceptabilityId, // Acceptability ID placeholder
-							descriptionId, // Description ID placeholder
-							descriptionStatus); // Description Status placeholder
-	            	
-	            	resultCollector.setFullTranslationOverview(
-	                        conceptId, term, type, languageCode, conceptStatus
-	                );
-	                break;
+				resultCollector.setFullExtensionTranslation(conceptId, conceptStatus,
+					"", // FSN placeholder
+					"", // Preferred Term placeholder
+					term, languageCode, caseSignificance,
+					type, // Type placeholder
+					languageReferenceSet, // Language Reference Set placeholder
+					acceptabilityId, // Acceptability ID placeholder
+					descriptionId, // Description ID placeholder
+					descriptionStatus); // Description Status placeholder
+					
+				resultCollector.setFullTranslationOverview(
+				        conceptId, term, type, languageCode, conceptStatus
+				);
+				break;
 
 	            case "inactivations":
 	                resultCollector.setFullExtensionInactivations(
@@ -502,16 +588,16 @@ public class DbConnection {
 	                break;
 	                
 	        	case "searchEszett":
-	        		resultCollector.setFullExtensionTranslation(
-	        				conceptId, conceptStatus, "", "", term,
-	                        languageCode, caseSignificance, type,
-	                        languageReferenceSet, acceptabilityId,
-	                        descriptionId, descriptionStatus
-	                );
-	        		break;
-	        		
+				resultCollector.setFullExtensionTranslation(
+						conceptId, conceptStatus, "", "", term,
+						languageCode, caseSignificance, type,
+						languageReferenceSet, acceptabilityId,
+						descriptionId, descriptionStatus
+				);
+				break;
+				
 	            default:
-	                System.out.println("Unhandled result set type: " + resultSetType);
+	                logger.warn("Unhandled result set type: {}", resultSetType);
 	        }
 	    }
 	}
