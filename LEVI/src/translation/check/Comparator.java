@@ -198,6 +198,14 @@ public class Comparator {
 
 		    boolean matchFound = false;
 
+		    logger.info("🔍 Looking up conceptId: '{}', entries found: {}", 
+		    	    conceptId, oldEntriesForConcept.size());
+
+		    	if (!oldEntriesForConcept.isEmpty()) {
+		    	    logger.info("🔍 First entry: {}", oldEntriesForConcept.get(0));
+		    	}
+
+		    
 		    for (List<String> oldEntry : oldEntriesForConcept) {
 		    	String oldTerm = oldEntry.get(4);
 		        String oldLangCode = oldEntry.get(5);
@@ -212,10 +220,10 @@ public class Comparator {
 		                && newLangCode.equals(oldLangCode)) {
 		            matchFound = true;
 		            
-		            logger.info("✅ Translation exists: {} - {}", conceptId, newTerm);
+//		            logger.info("✅ Translation exists: {} - {}", conceptId, newTerm);
 		            if ("0".equals(oldDesccriptionStatus)) {
 //		                System.out.println("🔴 Reactivate translation: " + conceptId + " - " + newTerm);
-		                resultCollector.setFullTranslationChanges(
+		                resultCollector.setFullTranslationReactivation(
 								oldDescriptionId, 
 								"", //placeholder for preferred term
 								newTerm,
@@ -372,7 +380,7 @@ public class Comparator {
 		return deltaInactivations;
 	}
 	
-	public List<List<String>> generateDescriptionChangesDelta() throws IOException, SQLException, ClassNotFoundException {
+	public List<List<String>> generateDescriptionChangesDelta(String type) throws IOException, SQLException, ClassNotFoundException {
 		List<String> headerChanges= Arrays.asList("Description ID", "Preferred Term (For reference only)", "Term (For reference only)",
 				"Case significance","Type","Language reference set","Acceptability","Language reference set","Acceptability",
 				"Language reference set","Acceptability","Language reference set","Acceptability","Language reference set",
@@ -381,7 +389,7 @@ public class Comparator {
 		List<List<String>> deltaChanges = new ArrayList<>();
 		deltaChanges.add(headerChanges);
 		
-		for (List<String> newEntry : resultCollector.getDataByType("TRANSLATION_CHANGES")) {
+		for (List<String> newEntry : resultCollector.getDataByType(type)) {
 	        deltaChanges.add(newEntry);
 		} 	
 		return deltaChanges;
