@@ -482,6 +482,8 @@ public class Comparator {
 		    final int CURR_LANGUAGECODE = 4;
 		    
 		    final int INA_CONCEPT_ID    = 3;
+		    final int INA_TERM          = 1;
+		    final int INA_LANGUAGECODE  = 2;
 			
 			List<String> headerInactivation = Arrays.asList("Description ID","Language Code", "Concept ID", "Preferred Term (For reference only)", "Term (For reference only)", "Inactivation Reason", "Association Target ID 1",
 					"Association Target ID 2", "Association Target ID 3", "Association Target ID 4", "Notes");
@@ -502,16 +504,28 @@ public class Comparator {
 		        return c + "||" + t + "||" + l;
 		    };
 		    
+		    Function<List<String>, String> comboKeyIna = row -> {
+		        String c = row.get(INA_CONCEPT_ID).trim();
+		        String t = row.get(INA_TERM).trim();
+		        String l = row.get(INA_LANGUAGECODE).trim().toLowerCase();
+		        return c + "||" + t + "||" + l;
+		    };
+		    
 		    // ---------- Prepare sets ----------
 		    Set<String> currentKeys = new HashSet<>(Math.max(16, currentEntries.size() * 2));
 		    for (List<String> row : currentEntries) {
 		        currentKeys.add(comboKeyCurr.apply(row));
 		    }
-
-		    Set<String> inactivationConceptIds = new HashSet<>(Math.max(16, currentInactivationEntries.size() * 2));
+		    
+		    Set<String> inactivationKeys = new HashSet<>(Math.max(16, currentInactivationEntries.size() * 2));
 		    for (List<String> row : currentInactivationEntries) {
-		        inactivationConceptIds.add(row.get(INA_CONCEPT_ID));
-		    }      
+		        inactivationKeys.add(comboKeyIna.apply(row));
+		    }
+
+//		    Set<String> inactivationConceptIds = new HashSet<>(Math.max(16, currentInactivationEntries.size() * 2));
+//		    for (List<String> row : currentInactivationEntries) {
+//		        inactivationConceptIds.add(row.get(INA_CONCEPT_ID));
+//		    }      
         
         // Process each entry in NEW_TRANSLATION_PREVIOUS
         for (List<String> previousEntry : previousEntries) {
@@ -522,7 +536,7 @@ public class Comparator {
         	String combo = conceptId + "||" + term + "||" + languageCode;
         	
         	boolean missingInCurrent = !currentKeys.contains(combo);
-            boolean notInactivated   = !inactivationConceptIds.contains(conceptId);
+            boolean notInactivated   = !inactivationKeys.contains(combo);
             
             if (missingInCurrent && notInactivated) {
                 List<String> formattedEntry = new ArrayList<>(11);
