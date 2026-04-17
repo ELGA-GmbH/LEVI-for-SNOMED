@@ -1,0 +1,30 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Main",
+            "request": "launch",
+            "mainClass": "translation.check.Main",
+            "projectName": "SNOMEDTranslationCheck",
+            "args": [
+                "--country=AT",
+                "--transformEszett=false",
+                "--regex=true",
+                "--previous=C:\\Users\\somuser\\Downloads\\2026_03\\Austrian_terms_20251202141910199_1-DezemberRelease.xlsx",
+                "--current=C:\\Users\\someuser\\Downloads\\2026_03\\Austrian_terms_20260224135239063.xlsx",
+                "--dest=C:\\Users\\someuser\\Downloads\\2026_03\\results_delta-20260417",
+                "--task=desc-add",
+                // "--task=desc-inact",
+                // "--task=not-published",
+                // "--task=duplicate-terms",
+                "--dbUrl=jdbc:mariadb://localhost:3306/SCT?useUnicode=true&characterEncoding=UTF-8",
+                "--dbUser=root",
+                "--dbPassword=root"
+            ]
+        }
+    ]
+}
