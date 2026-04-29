@@ -2,6 +2,7 @@ package translation.check;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -157,12 +158,7 @@ public class Comparator {
 		Set<String> conceptID = new HashSet<>();
 		for (String conceptIDentry : resultCollector.getIdsByType("NEW_TRANSLATION_CURRENT")) {
 			conceptID.add(conceptIDentry);
-		}
-
-		logger.info("Fetching translations from DB for {} concept IDs...", conceptID.size());		
-		dbConnection.searchTranslations(conceptID); // Fetch translations from the database and populate oldTranslation
-		logger.info("Translations fetched. Starting comparison...");
-		
+		}	
 		
 		// Step 2: structure translation from DB according to ConceptId --> Map with List<List<String>>
 		Map<String, List<List<String>>> dbTranslationMap = new HashMap<>();
@@ -170,7 +166,7 @@ public class Comparator {
 		    String conceptId = oldEntry.get(0);
 		    dbTranslationMap.computeIfAbsent(conceptId, k -> new ArrayList<>()).add(oldEntry);
 		}
-		
+				
 		// Step 3: prepare delta list
 		List<List<String>> deltaTranslations = new ArrayList<>();
 		deltaTranslations.add(headerAdditions); // Add header to delta list
@@ -197,14 +193,6 @@ public class Comparator {
 		    List<List<String>> oldEntriesForConcept = dbTranslationMap.getOrDefault(conceptId, Collections.emptyList());
 
 		    boolean matchFound = false;
-
-		    logger.info("🔍 Looking up conceptId: '{}', entries found: {}", 
-		    	    conceptId, oldEntriesForConcept.size());
-
-		    	if (!oldEntriesForConcept.isEmpty()) {
-		    	    logger.info("🔍 First entry: {}", oldEntriesForConcept.get(0));
-		    	}
-
 		    
 		    for (List<String> oldEntry : oldEntriesForConcept) {
 		    	String oldTerm = oldEntry.get(4);
@@ -213,6 +201,7 @@ public class Comparator {
 		        String oldAccept = oldEntry.get(9);
 		        String oldDescriptionId = oldEntry.get(10);
 		        String oldDesccriptionStatus = oldEntry.get(11);
+		        
 		      
 		        if (!newTerm.isEmpty() && !oldTerm.isEmpty() 
 		                && newTerm.equals(oldTerm) 
@@ -220,9 +209,7 @@ public class Comparator {
 		                && newLangCode.equals(oldLangCode)) {
 		            matchFound = true;
 		            
-//		            logger.info("✅ Translation exists: {} - {}", conceptId, newTerm);
 		            if ("0".equals(oldDesccriptionStatus)) {
-//		                System.out.println("🔴 Reactivate translation: " + conceptId + " - " + newTerm);
 		                resultCollector.setFullTranslationReactivation(
 								oldDescriptionId, 
 								"", //placeholder for preferred term
@@ -253,7 +240,6 @@ public class Comparator {
 		                    || (oldAccept != null && !oldAccept.isEmpty()
 		                        && newAccept != null && !newAccept.isEmpty()
 		                        && !oldAccept.equalsIgnoreCase(newAccept))) {
-//		                System.out.println("🔁 Acceptability changed: " + conceptId + " - " + newTerm);
 		                resultCollector.setFullTranslationChanges(
 								oldDescriptionId, 
 								"", //placeholder for preferred term
@@ -292,13 +278,7 @@ public class Comparator {
 				    copy.add(20, spaceAroundSlashResult);
 				    copy.add(21, apostropheResult);
 				    copy.add(22, upperCaseResult);
-		        }
-//		        copy.add(18, quotesResult);
-//		        copy.add(19, softHyphenResult);
-//		        copy.add(20, spaceAroundSlashResult);
-//		        copy.add(21, apostropheResult);
-//		        copy.add(22, upperCaseResult);
-		       
+		        }		       
 		        deltaTranslations.add(copy);
 		    }
 		}
@@ -520,12 +500,7 @@ public class Comparator {
 		    Set<String> inactivationKeys = new HashSet<>(Math.max(16, currentInactivationEntries.size() * 2));
 		    for (List<String> row : currentInactivationEntries) {
 		        inactivationKeys.add(comboKeyIna.apply(row));
-		    }
-
-//		    Set<String> inactivationConceptIds = new HashSet<>(Math.max(16, currentInactivationEntries.size() * 2));
-//		    for (List<String> row : currentInactivationEntries) {
-//		        inactivationConceptIds.add(row.get(INA_CONCEPT_ID));
-//		    }      
+		    }    
         
         // Process each entry in NEW_TRANSLATION_PREVIOUS
         for (List<String> previousEntry : previousEntries) {

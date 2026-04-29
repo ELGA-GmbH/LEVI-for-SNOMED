@@ -49,9 +49,9 @@ public class Main {
 //		compareManager.runTranslationOverview(conf.getFilePathCurrent(), conf.getDestination());
 //		compareManager.runDeltaDescAdditions(conf.getFilePathCurrent(), conf.getDestination());
 //		compareManager.runDeltaDescInactivations(conf.getFilePathCurrent(), conf.getDestination());
-//		compareManager.runGenerateDelta(conf.getFilePathCurrent(), conf.getDestination());
+		compareManager.runGenerateDelta(conf.getFilePathCurrent(), conf.getDestination());
 //		compareManager.runCheckEszettInExtension(conf.getDestination());
 //		compareManager.runDeltaNotPublishedTranslations(conf.getFilePathCurrent(), conf.getFilePathPrevious(), conf.getDestination());
-		compareManager.runCheckDuplicateTerms(conf.getDestination());
+//		compareManager.runCheckDuplicateTerms(conf.getDestination());
 	}
 }

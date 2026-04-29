@@ -83,9 +83,7 @@ public class DbConnection {
 	 * @throws IllegalArgumentException     if an unsupported language code is
 	 *                                      provided
 	 */
-	public void searchTranslations(Set<String> conceptIDs) // TODO: Improve so it only returns entries from active
-															// concepts
-			throws SQLException, UnsupportedEncodingException, ClassNotFoundException {
+	public void searchTranslations(Set<String> conceptIDs) throws SQLException, UnsupportedEncodingException, ClassNotFoundException {
 		connect();
 
 		Set<String> languages = conf.getLocalLanguages();
@@ -168,22 +166,24 @@ public class DbConnection {
 			              ON fc1.id = latest_c.id
 			             AND fc1.effectiveTime = latest_c.max_time
 			        ) c ON d.conceptId = c.id
-			        LEFT JOIN full_refset_Language l
-			          ON d.id = l.referencedComponentId
-			         AND l.refsetId IN (
+			        LEFT JOIN (
+			            SELECT l1.referencedComponentId, l1.acceptabilityId, l1.refsetId
+			            FROM full_refset_Language l1
+			            INNER JOIN (
+			                SELECT referencedComponentId, refsetId, MAX(effectiveTime) AS max_time
+			                FROM full_refset_Language
+			                WHERE refsetId IN (
 			        """ + refSetPlaceholder + """
-			         )
-			         AND l.effectiveTime = (
-			             SELECT MAX(l2.effectiveTime)
-			             FROM full_refset_Language l2
-			             WHERE l2.referencedComponentId = d.id
-			               AND l2.refsetId IN (
-			        """ + refSetPlaceholder + """
-			               )
-			         )
+			                )
+			                GROUP BY referencedComponentId, refsetId
+			            ) latest_l
+			              ON l1.referencedComponentId = latest_l.referencedComponentId
+			             AND l1.refsetId             = latest_l.refsetId
+			             AND l1.effectiveTime        = latest_l.max_time
+			            GROUP BY l1.referencedComponentId, l1.refsetId, l1.acceptabilityId
+			        ) l ON d.id = l.referencedComponentId
 			        """;
 
-			logger.info("Executing optimized query with temp table...");
 			try (ResultSet rs = stmt.executeQuery(query)) {
 				processTranslationResultSet("additions", rs);
 			}
