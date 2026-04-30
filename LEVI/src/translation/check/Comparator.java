@@ -159,6 +159,8 @@ public class Comparator {
 		for (String conceptIDentry : resultCollector.getIdsByType("NEW_TRANSLATION_CURRENT")) {
 			conceptID.add(conceptIDentry);
 		}	
+
+		dbConnection.searchTranslations(conceptID); // Fetch translations from the database and populate oldTranslation
 		
 		// Step 2: structure translation from DB according to ConceptId --> Map with List<List<String>>
 		Map<String, List<List<String>>> dbTranslationMap = new HashMap<>();
